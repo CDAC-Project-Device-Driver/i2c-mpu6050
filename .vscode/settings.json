@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "semaphore.h": "c",
+        "mutex.h": "c",
+        "usb.h": "c",
+        "typeinfo": "c"
+    }
+}
