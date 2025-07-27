@@ -48,17 +48,30 @@ static int pchar_close(struct inode *pinode, struct file *pfile) {
 static ssize_t pchar_read(struct file *pfile, char __user *ubuf, size_t bufsize, loff_t *poffset) {
     pr_info("pchar_read() called.\n");
     int8_t reg;
-    int accel_x,accel_y,accel_z;
+    int16_t accel_x,accel_y,accel_z,temp_raw,gyro_x,gyro_y,gyro_z;
+    int temp_mc,temp_c;
     reg = 0x3B;
     i2c_master_send(desd_i2c_client_acc, &reg, 1);  // Just send the register address
 
-    uint8_t data[6];
-    i2c_master_recv(desd_i2c_client_acc, data, 6);  // Now read 14 bytes
+    uint8_t data[14];
+    i2c_master_recv(desd_i2c_client_acc, data, 14);  // Now read 14 bytes
     accel_x = (data[0] << 8) | data[1];
     accel_y = (data[2] << 8) | data[3];
     accel_z = (data[4] << 8) | data[5];
+    temp_raw = (data[6] << 8) | data[7];
+    gyro_x = (data[8] << 8) | data[9];
+    gyro_y = (data[10] << 8) | data[11];
+    gyro_z = (data[12] << 8) | data[13];
 
-    pr_info("x=%d, y=%d, z=%d\n",accel_x,accel_y,accel_z);
+    pr_info("accel_x=%d, accel_y=%d, accel_z=%d\n",accel_x/16384,accel_y/16384,accel_z/16384);
+    pr_info("gyro_x=%d, gyro_y=%d, gyro_z=%d\n",gyro_x/131,gyro_y/131,gyro_z/131);
+    temp_mc=((int32_t)temp_raw*1000)/340+36530;
+    temp_c=temp_mc/1000;
+    pr_info("temp_raw= %d temp_mc=%d temp_c=%d\n",temp_raw,temp_mc,temp_c);
+    pr_info("Temperature in degrees C = %d.%03d\n",temp_c,temp_mc%1000);
+
+    copy_to_user(ubuf,data,14);
+                                                                
     return 0;
 }
 
@@ -93,6 +106,55 @@ static int desd_acc_probe(struct i2c_client *client, const struct i2c_device_id 
 
     uint8_t buf[2] = { 0x6B, 0x00 };  // Register + data
     ret=i2c_master_send(client, buf, 2);
+    if (ret < 0) {
+        pr_err("Failed to send register address + data\n");
+        return ret;
+    }
+
+    buf[0] = 0x1A; // CONFIG
+    buf[1] = 0x01; // DLPF_CFG = 1
+    ret=i2c_master_send(client, buf, 2);
+    if (ret < 0) {
+        pr_err("Failed to send CONFIG register address + data\n");
+        return ret;
+    }
+
+    buf[0] = 0x19; // SMPRT_DIV
+    buf[1] = 0x09; // SMPRT_DIV = 9
+    ret=i2c_master_send(client, buf, 2);
+    if (ret < 0) {
+        pr_err("Failed to send SMPRT_DIV register address + data\n");
+        return ret;
+    }
+
+    buf[0] = 0x6A; // USER_CTRL
+    buf[1] = 0x04; // FIFO_RESET = 1
+    ret=i2c_master_send(client, buf, 2);
+    if (ret < 0) {
+        pr_err("Failed to send USER_CTRL register address + data(FIFO_RESET)\n");
+        return ret;
+    }
+
+    usleep_range(1000,2000);
+
+    buf[0] = 0x6A; // USER_CTRL
+    buf[1] = 0x40; // FIFO_EN = 1
+    ret=i2c_master_send(client, buf, 2);
+    if (ret < 0) {
+        pr_err("Failed to send USER_CTRL register address + data(FIFO_EN)\n");
+        return ret;
+    }
+
+    buf[0] = 0x23; // FIFO_EN
+    buf[1] = 0x78; // GYRO_X/Y/Z + ACCEL 
+    ret=i2c_master_send(client, buf, 2);
+    if (ret < 0) {
+        pr_err("Failed to send FIFO_EN register address + data\n");
+        return ret;
+    }
+
+
+
 
     if ((ret = alloc_chrdev_region(&devno, 0, 1, "pchar")) < 0)
         return ret;
@@ -128,6 +190,13 @@ static int desd_acc_remove(struct i2c_client *client) {
     pr_info("acc and char driver removed\n");
     return 0;
 }
+
+static struct of_device_id mpu6050_of_match[] = {
+    { .compatible = "mpu6050" },
+    { }
+};
+MODULE_DEVICE_TABLE(of,mpu6050_of_match);
+
 
 // I2C ID and driver struct
 static struct i2c_device_id desd_acc_id[] = {
