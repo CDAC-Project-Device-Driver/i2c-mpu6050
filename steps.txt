@@ -1,0 +1,20 @@
+1. Create the .dts file BB-I2C2-MPU6050-00A0.dts
+2. Install sudo apt install device-tree-compiler
+3. compile the .dts file to create .dtbo as per below command.
+	dtc -O dtb -o BB-I2C2-MPU6050-00A0.dtbo -b 0 -@ BB-I2C2-MPU6050-00A0.dts
+4.Copy the .dtbo file in the /lib/firmware (firmware directory) so that it can be loaded at the time of boot.
+	sudo cp BB-I2C2-MPU6050-00A0.dtbo /lib/firmware/
+5.Edit the uEnv.txt to apply the overlay at the time of boot.
+	sudo vim /boot/uEnv.txt or sudo nano /boot/uEnv.txt
+	make the changes as per given below to implement the uboot_overlay
+		enable_uboot_overlays=1
+		uboot_overlay_addr4=/lib/firmware/BB-I2C2-MPU6050-00A0.dtbo 	//as per available addr line
+6. After making all above changes i had reboot the beaglebone 
+7. After rebooting it has thrown a error as per below.
+	
+	[   40.356079] inv-mpu6050-i2c 2-0068: trigger probe fail -22
+	[   40.415151] dummy: Underflow of regulator enable count
+	[   40.483019] inv-mpu6050-i2c 2-0068: Failed to disable vddio regulator: -22
+	[   40.591137] inv-mpu6050-i2c: probe of 2-0068 failed with error -22
+8. Also it creates its own driver which is different than the created device driver, attached screenshot for the same.
+	

@@ -1,0 +1,45 @@
+    /dts-v1/;
+    /plugin/;
+
+    / {
+        compatible = "ti,beaglebone", "ti,beaglebone-black";
+        part-number = "BB-I2C2-MPU6050";
+        version = "00A0";
+
+        fragment@0 {
+            target = <&i2c2>;
+            __overlay__ {
+                status = "okay";
+                clock-frequency = <400000>;
+
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                mpu6050@68 {
+                    compatible = "invensense,mpu6050";
+                    reg = <0x68>;
+                    status = "okay";
+
+                    vdd-supply = <&dummy_reg>;
+                    vddio-supply = <&dummy_reg>;
+
+                    probe-delay-ms = <100>;
+                    mount-matrix = [01 00 00 00 01 00 00 00 01];
+                };
+            };
+        };
+
+        fragment@1 {
+            target-path = "/";
+            __overlay__ {
+                dummy_reg: dummy_regulator {
+                    compatible = "regulator-fixed";
+                    regulator-name = "dummy";
+                    regulator-min-microvolt = <3300000>;
+                    regulator-max-microvolt = <3300000>;
+                    regulator-always-on;
+                };
+            };
+        };
+    };
+
