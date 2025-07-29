@@ -1,14 +1,14 @@
-#include<linux/device.h>
-#include<linux/module.h>
-#include<linux/slab.h>
-#include<linux/cdev.h>
-#include<linux/fs.h>
-#include<linux/kernel.h>
-#include"i2c_mpu6050_ioctl.h"
-#include<linux/ioctl.h>
-#include<linux/proc_fs.h>
-#include<linux/seq_file.h>
-#include<linux/uaccess.h>
+#include<linux/device.h>		//device model support for device_create and class_create
+#include<linux/module.h>		//required for __init and __exit()
+#include<linux/cdev.h>			//reqd for character device registration
+#include<linux/fs.h>			//file system interface file_ops
+#include<linux/kernel.h>		
+#include"i2c_mpu6050_ioctl.h"	//use to add ioctl macro and command
+#include<linux/ioctl.h>			//use to implement ioctl function
+#include<linux/proc_fs.h>		//use to create proc file sys under /proc/
+#include<linux/seq_file.h>		
+#include<linux/uaccess.h>		//user to kernel  copy_to and copy_from
+#include<linux/i2c.h>			//use to implement i2c function
 
 #define PROC_NAME  					"mpu6050_info"
 #define I2C_BUS_AVAILABLE 			2
