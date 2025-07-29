@@ -84,6 +84,7 @@ static struct i2c_driver accel_driver={
 	.driver={
 			.name=SLAVE_DEVICE_NAME,
 			.owner=THIS_MODULE,
+			.of_match_table= of_match_ptr(mpu6050_match_ids),
 	},
 	.probe=accel_probe,
 	.remove=accel_remove,
