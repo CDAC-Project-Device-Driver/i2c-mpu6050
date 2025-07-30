@@ -44,7 +44,7 @@ int main(){
     		int16_t accel_y = (data[2] << 8) | data[3];
     		int16_t accel_z = (data[4] << 8) | data[5];
     		int16_t temp_raw = (data[6] << 8) | data[7];
-   	 	int16_t gyro_x  = (data[8] << 8) | data[9];
+   	 		int16_t gyro_x  = (data[8] << 8) | data[9];
     		int16_t gyro_y  = (data[10] << 8) | data[11];
 	    	int16_t gyro_z  = (data[12] << 8) | data[13];
 	

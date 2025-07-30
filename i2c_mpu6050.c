@@ -12,7 +12,7 @@
 
 #define PROC_NAME  					"mpu6050_info"
 #define I2C_BUS_AVAILABLE 			2
-#define SLAVE_DEVICE_NAME 			"MPU_6050"
+#define SLAVE_DEVICE_NAME 			"mycompany,mympu6050"
 #define SLAVE_ADDRESS 				0x68
 #define ACCEL_CLASS_NAME 			"accelerometer_class"
 #define ACCEL_DEVICE_NAME 			"Accelerometre_MPU6050"
@@ -32,7 +32,7 @@
 #define GYRO_FS_SENSITIVITY_3		164
 
 static struct proc_dir_entry *mpu6050_proc_entry=NULL;
-static struct i2c_adapter *i2c_adapter_accel=NULL:
+//static struct i2c_adapter *i2c_adapter_accel=NULL;
 static struct i2c_client *i2c_client_accel=NULL;
 static struct class *pclass=NULL;
 static dev_t devno;
@@ -59,7 +59,8 @@ static struct file_operations accel_ops={
 static int mpu_proc_open(struct inode *pinode, struct file *pfile)
 {
 	pr_info("mpu6050_info proc file is opened in procfs");
-	return 0;
+
+    return single_open(pfile, mpu_proc_display, NULL);
 }
 
 static const struct proc_ops mpu_proc_ops={
@@ -68,13 +69,13 @@ static const struct proc_ops mpu_proc_ops={
 };
 
 static const struct of_device_id mpu6050_match_ids[]={
-	{.compatible = "invensense,mpu6050"},{/*sentinel*/}
+	{.compatible = "mycompany,mympu6050"},{/*sentinel*/}
 };
 
 MODULE_DEVICE_TABLE(of,mpu6050_match_ids);
 
 static const struct i2c_device_id accelerometre_id[]={
-	{SLAVE_DEVICE_NAME,0}
+	{SLAVE_DEVICE_NAME,0},
 	{ }
 };
 
@@ -88,48 +89,16 @@ static struct i2c_driver accel_driver={
 	},
 	.probe=accel_probe,
 	.remove=accel_remove,
-	.id_table=accel_id,
+	.id_table=accelerometre_id,
 
 };
-
+/*
 static struct i2c_board_info accel_board_info= {
 	I2C_BOARD_INFO(SLAVE_DEVICE_NAME,SLAVE_ADDRESS)
 };
+*/
 
-static int __init accel_init()
-{
-	int ret=-1;
-	pr_info("%s Accel_init is started\n",THIS_MODULE->name);
-	i2c_adapter_accel=i2c_get_adapter(I2C_BUS_AVAILABLE);
-	if(i2c_adapter_accel!=NULL)
-	{
-		i2c_client_accel=i2c_new_client_device(i2c_adapter_accel,&accel_board_info);
-		if(i2c_client_accel!=NULL)
-			{
-				i2c_add_driver(&accel_driver);
-				pr_info("%s driver for the device added successfully",THIS_MODULE->name);
-			}
-		else
-			pr_info("Accelerometre not detected");
-		i2c_put_driver(i2c_adapter_accel);
-	}
-	else	
-		pr_info("%s I2C Bus Adapter is not availabe",THIS_MODULE->name);
-	pr_info("%s Accel_init() is done successfully\n",THIS_MODULE->name);
-	return 0;
-}
-
-static void __exit accel_exit()
-{
-	pr_info("%s Accel_exit() is called\n",THIS_MODULE->name);
-	if(i2c_client_accel!=NULL)
-	{
-		i2c_unregister_device(i2c_client_accel);
-		i2c_del_driver(&accel_driver);
-	}
-	pr_info("Driver removed successfully");
-	pr_info("%s Accel_exit() is completed\n",THIS_MODULE->name);
-}
+module_i2c_driver(accel_driver);
 
 static int accel_probe(struct i2c_client *client,const struct i2c_device_id *id)
 {
@@ -273,7 +242,7 @@ static ssize_t accel_read(struct file *pfile,char __user *ubuf, size_t bufsize, 
 	int16_t temp_raw,accel_x_raw,accel_y_raw,accel_z_raw, gyro_x_raw, gyro_y_raw, gyro_z_raw;
 	int16_t accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z;
 	int temp_mc,temp_c;
-	pr_info("%s accel_read() is called");
+	pr_info("%s accel_read() is called",THIS_MODULE->name);
 	
 	for(i=0;i<14;i++)
 	{
@@ -362,6 +331,7 @@ static int mpu_proc_display(struct seq_file *m, void *v)
 {
 	int16_t ax, ay,az,gx,gy,gz;
 	uint8_t data[14];
+	int t;
 	int i,ret;
 	
 	for(i=0;i<14;i++)
@@ -389,13 +359,11 @@ static int mpu_proc_display(struct seq_file *m, void *v)
                (az * 1000) / accel_sensitivity);
 
     seq_printf(m, "Gyroscope (mdps): X=%d Y=%d Z=%d\n",(gx * 1000) / gyro_sensitivity,(gy * 1000) / gyro_sensitivity,(gz * 1000) / gyro_sensitivity);
-
-    seq_printf(m,"Temp: %d.%03d deg C\n",t*1000);
+	
+	int temp_mc = ((int32_t)t*1000)/340 +36530;
+    seq_printf(m,"Temp: %d.03d deg C\n",temp_mc,t*1000);
 	return 0;
 }
-
-module_init(accel_init);
-module_exit(accel_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Chetan S. Sunaskar <chetansunaskar@gmail.com>");
