@@ -4,15 +4,17 @@
 #include<string.h>
 
 int main(){
-    int fd=open("/dev/pchar",O_RDONLY);
-    if(fd<0)
-        return 0;
-    __int8_t data[14];
+    __uint8_t data[14];
     memset(data,0,14);
+    __int16_t accel_x,accel_y,accel_z,temp_raw,gyro_x,gyro_y,gyro_z;
+    __int32_t temp_mc,temp_c;
+
+    int fd=open("/dev/mp6050",O_RDONLY);
+    if(fd<0)
+        return -1;
+
     while(1){
     read(fd,data,14);
-     __int16_t accel_x,accel_y,accel_z,temp_raw,gyro_x,gyro_y,gyro_z;
-    __int32_t temp_mc,temp_c;
     accel_x = (data[0] << 8) | data[1];
     accel_y = (data[2] << 8) | data[3];
     accel_z = (data[4] << 8) | data[5];
@@ -27,7 +29,8 @@ int main(){
     temp_c=temp_mc/1000;
     printf("temp_raw= %d temp_mc=%d temp_c=%d\n",temp_raw,temp_mc,temp_c);
     printf("Temperature in degrees C = %d.%03d\n",temp_c,temp_mc%1000);
-    sleep(5);
+    
+    usleep(100000); //100ms
     }
     
     close(fd);
